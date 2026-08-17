@@ -1,10 +1,8 @@
-# TaskFlow
+# Ugnay
 
-A portfolio-quality full-stack task management system built with a Modular Monolith
+A  full-stack task and project management system built with a Modular Monolith
 architecture, demonstrating a real-world Agile/Scrum-inspired SDLC.
 
-> 🚧 Boilerplate stage — project configuration and skeletons only. No business
-> features implemented yet. See `docs/sprint-plan.md` for the build order.
 
 ## Stack
 
