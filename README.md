@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ugnay
 
 A  full-stack task and project management system built with a Modular Monolith
@@ -82,3 +83,6 @@ deployment notes as they're written.
 ## License
 
 See `LICENSE`.
+=======
+# Ugnay
+>>>>>>> b5948adfdd8de475070516a0eae4ef7fc87d7d3c
