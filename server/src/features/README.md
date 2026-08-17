@@ -1,0 +1,1 @@
+Feature modules go here, one folder per feature: users/, projects/, boards/, tasks/, comments/. Each folder holds its own controller, service, repository, and Zod schema (route -> service -> repository -> Prisma).

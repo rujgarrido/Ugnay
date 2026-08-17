@@ -1,0 +1,10 @@
+import { createApp } from './app';
+import { env } from './config/env';
+import { logger } from './lib/logger';
+
+const app = createApp();
+
+app.listen(env.PORT, () => {
+  logger.info(`🚀 TaskFlow API listening on http://localhost:${env.PORT}`);
+  logger.info(`   Health check: http://localhost:${env.PORT}/health`);
+});

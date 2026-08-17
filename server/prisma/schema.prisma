@@ -1,0 +1,22 @@
+// TaskFlow — Prisma schema
+//
+// Status: placeholder. Do NOT add models here until the ERD in
+// docs/database.md is finalized (implementation guide, Section 8).
+// Models should be a translation of an already-agreed design, not
+// designed directly in this file.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// model User { ... }
+// model Project { ... }
+// model ProjectMember { ... }
+// model Board { ... }
+// model Task { ... }
+// model Comment { ... }

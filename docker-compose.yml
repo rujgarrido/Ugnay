@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-taskflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-taskflow}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - taskflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taskflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+# NOTE: backend/frontend services will be added here once their Dockerfiles
+# exist (see docs/sprint-plan.md, Section 15 of the implementation guide).
+# For now, run `npm run dev` in server/ and webapp/ directly against this
+# containerized Postgres instance.
+
+volumes:
+  taskflow_postgres_data:
