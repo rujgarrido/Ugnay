@@ -5,6 +5,13 @@
 // Models should be a translation of an already-agreed design, not
 // designed directly in this file.
 
+// Phase 3.6 — reflects decisions locked in Phase 3.5 (RBAC & Authorization Design):
+//   - DB-backed refresh tokens (rotated on use), httpOnly cookie transport
+//   - Access JWT carries only userId — org membership/permissions resolved fresh per request
+//   - Single-source RBAC (Position -> Permission). Committee Head is an ownership/scope
+//     check in the service layer, NOT a second permission source (see CommitteeMember.isHead)
+//   - Proposal state machine trimmed to 5 core states + 3 terminal exception states
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,9 +21,306 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// model User { ... }
-// model Project { ... }
-// model ProjectMember { ... }
-// model Board { ... }
-// model Task { ... }
-// model Comment { ... }
+// ─────────────────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships   OrganizationMember[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+}
+
+// One row per issued refresh token. Rotated on every /auth/refresh call:
+// the old row is marked revoked, a new row is issued. Enables real revocation
+// (logout, "log out everywhere", compromised-token response) that a stateless
+// JWT refresh token cannot provide.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique // never store the raw token — hash it (e.g. sha256)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────
+// ORGANIZATION / RBAC
+// ─────────────────────────────────────────────────────────
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     OrganizationMember[]
+  positions   Position[]
+  committees  Committee[]
+  projects    Project[]
+  proposals   Proposal[]
+  activityLog ActivityLog[]
+}
+
+model OrganizationMember {
+  id             String    @id @default(uuid())
+  userId         String
+  organizationId String
+  positionId     String
+  isActive       Boolean   @default(true)
+  joinedAt       DateTime  @default(now())
+  removedAt      DateTime?
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  position     Position           @relation(fields: [positionId], references: [id])
+
+  committeeMemberships CommitteeMember[]
+  assignedTasks         Task[]            @relation("TaskAssignee")
+  createdTasks           Task[]           @relation("TaskCreatedBy")
+  createdProjects        Project[]        @relation("ProjectCreatedBy")
+  createdProposals        Proposal[]      @relation("ProposalCreatedBy")
+  responsibleForProposals Proposal[]      @relation("ProposalResponsibleMember")
+  activityLogEntries       ActivityLog[]
+
+  // A member has exactly one primary Position for MVP (see handoff doc, Section 8).
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Position {
+  id             String  @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      OrganizationMember[]
+  permissions  PositionPermission[]
+
+  @@unique([organizationId, name])
+}
+
+model Permission {
+  id          String  @id @default(uuid())
+  code        String  @unique // e.g. CREATE_PROJECT, ASSIGN_TASK, MANAGE_MEMBERS
+  description String?
+
+  positions PositionPermission[]
+}
+
+model PositionPermission {
+  positionId   String
+  permissionId String
+
+  position   Position   @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([positionId, permissionId])
+}
+
+// ─────────────────────────────────────────────────────────
+// COMMITTEES
+// isHead is an ownership flag, not a permission grant. Authorization for
+// committee-scoped actions (e.g. "assign task within my committee") is
+// resolved in the service layer as: base Position permission OR isHead
+// scope check — see Phase 3.5 decision. No CommitteePermission table.
+// ─────────────────────────────────────────────────────────
+
+model Committee {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      CommitteeMember[]
+
+  @@unique([organizationId, name])
+}
+
+model CommitteeMember {
+  id                    String  @id @default(uuid())
+  committeeId           String
+  organizationMemberId  String
+  isHead                Boolean @default(false)
+
+  committee           Committee           @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  organizationMember   OrganizationMember  @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([committeeId, organizationMemberId])
+}
+
+// ─────────────────────────────────────────────────────────
+// PROJECTS / TASKS
+// No ProjectMember table — access resolved via org membership + visibility
+// + permissions (handoff doc, Section 13). Do not reintroduce it for MVP.
+// ─────────────────────────────────────────────────────────
+
+enum ProjectVisibility {
+  ORG_WIDE
+  RESTRICTED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Project {
+  id             String            @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  visibility     ProjectVisibility @default(ORG_WIDE)
+  status         ProjectStatus     @default(ACTIVE)
+  createdById    String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    OrganizationMember @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  tasks        Task[]
+  proposals    Proposal[]
+
+  @@index([organizationId])
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  projectId   String
+  title       String
+  description String?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(BACKLOG)
+  assigneeId  String? // nullable — task may be unassigned
+  createdById String
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee  OrganizationMember? @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy OrganizationMember  @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+// ─────────────────────────────────────────────────────────
+// PROPOSALS
+// Status enum reflects the trimmed 5-state + 3-terminal-exception machine
+// locked in this conversation. Transition legality is enforced in the
+// service layer via an explicit ALLOWED_TRANSITIONS map — do not rely on
+// the enum alone to prevent illegal transitions (e.g. DRAFT -> COMPLETED).
+// ─────────────────────────────────────────────────────────
+
+enum ProposalStatus {
+  DRAFT
+  SUBMITTED
+  AWAITING_SIGNATURES
+  SUBMITTED_TO_OFFICE
+  COMPLETED
+  NEEDS_REVISION
+  REJECTED
+  CANCELLED
+}
+
+model Proposal {
+  id                  String         @id @default(uuid())
+  organizationId      String
+  projectId           String? // optional — proposal may not belong to a project
+  title               String
+  description         String?
+  status              ProposalStatus @default(DRAFT)
+  responsibleMemberId String? // nullable
+  createdById         String
+  dueDate             DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project            Project?            @relation(fields: [projectId], references: [id])
+  responsibleMember  OrganizationMember? @relation("ProposalResponsibleMember", fields: [responsibleMemberId], references: [id])
+  createdBy          OrganizationMember  @relation("ProposalCreatedBy", fields: [createdById], references: [id])
+  signatures          ProposalSignature[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([status])
+}
+
+enum SignatureStatus {
+  PENDING
+  COMPLETED
+}
+
+model ProposalSignature {
+  id            String          @id @default(uuid())
+  proposalId    String
+  signatoryName String
+  signatoryRole String
+  status        SignatureStatus @default(PENDING)
+  completedAt   DateTime?
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+}
+
+// ─────────────────────────────────────────────────────────
+// ACTIVITY LOG
+// Append-only. Application layer must not expose update/delete for this
+// model — enforce at the service layer (no repository method for it).
+// ─────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id                   String   @id @default(uuid())
+  organizationId       String
+  organizationMemberId String
+  action               String // e.g. "created_task", "assigned_task", "submitted_proposal"
+  entityType           String // e.g. "Task", "Proposal", "Project"
+  entityId             String
+  metadata             Json?
+  createdAt            DateTime @default(now())
+
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationMember OrganizationMember @relation(fields: [organizationMemberId], references: [id])
+
+  @@index([organizationMemberId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
