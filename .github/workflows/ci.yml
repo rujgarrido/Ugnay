@@ -1,8 +1,7 @@
 name: CI
 
-# NOTE: intended to be enabled around Sprint 3 (see docs/sprint-plan.md).
-# Left in place now so the pipeline concept is visible in the repo from Day 1,
-# but there's nothing to test/build yet until features exist.
+# This workflow will run on every push and pull request to the main branch.
+# It will install dependencies, run type checking, linting, tests, and build the server and webapp.
 
 on:
   push:
