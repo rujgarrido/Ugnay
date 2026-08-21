@@ -9,10 +9,17 @@ import { notFound } from './middleware/notFound';
 
 export function createApp(): Express {
   const app = express();
+  // helmet and cors should be registered before any other middleware to ensure security and cross-origin requests are handled properly
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+  //
   app.use(express.json());
-  app.use(pinoHttp({ logger }));
+  //strip pino-http headers to avoid logging sensitive information
+  app.use(pinoHttp({ logger, serializers: {
+    req: (req) => ({ method: req.method, url: req.url }), // strip headers
+    res: (res) => ({ statusCode: res.statusCode }),
+  },
+ }));
 
   // Health check — used for local verification and platform (Render) health probes.
   app.get('/health', (_req, res) => {
@@ -29,6 +36,7 @@ export function createApp(): Express {
   app.use('/api/v1', apiRouter);
 
   // Must be registered last, in this order.
+  // 
   app.use(notFound);
   app.use(errorHandler);
 

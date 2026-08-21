@@ -1,11 +1,13 @@
 import request from 'supertest';
-import { createApp } from './app';
+import { createApp } from '../app';
 
 /**
  * A minimal smoke test proving the Jest + Supertest setup works end-to-end.
  * Real feature tests will follow this same pattern: spin up the app,
  * hit an endpoint, assert on status + body shape.
  */
+
+// Integration tests for the health check and 404 error handling
 describe('GET /health', () => {
   it('returns 200 and status ok', async () => {
     const app = createApp();
