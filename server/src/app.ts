@@ -5,7 +5,7 @@ import pinoHttp from 'pino-http';
 import { env } from './config/env';
 import { logger } from './lib/logger';
 import { errorHandler } from './middleware/errorHandler';
-import { notFound } from './middleware/notFound';
+import { routesNotFound } from './middleware/routesNotFound';
 import { authRoutes } from './features/auth/auth.routes';
 import { AuthController } from './features/auth/auth.controller';
 import { AuthService } from './features/auth/auth.service';
@@ -52,7 +52,7 @@ export function createApp(): Express {
 console.log('Auth routes registered at /api/v1/auth');
 
   // 404 handler for unmatched routes
-  app.use(notFound);
+  app.use(routesNotFound);
   // Central error handler for all errors thrown in the application
   app.use(errorHandler);
 

@@ -1,5 +1,5 @@
 
-import { generateRefreshToken, hashRefreshToken } from '../../lib/crypto.util';
+import { generateRefreshToken, hashRefreshToken, generateAccessToken } from '../../lib/jwt.util';
 import { AppError } from '../../middleware/errorHandler';
 import { AuthRepository } from './auth.repository';
 import { env } from '../../config/env';
@@ -57,15 +57,10 @@ export class AuthService {
         // If login is successful, you can return user details or a access token and refresh token
         const payload = {id:existingUser.id};
 
-        
-
         // Generate access token a
-        const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
-        
-
+        const accessToken = generateAccessToken(payload);
         // Generate refresh token
         const refreshtoken =  generateRefreshToken();
-
         // Hash the refresh token before storing it in the database
         const hashedRefreshToken = hashRefreshToken(refreshtoken);
 

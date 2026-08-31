@@ -31,7 +31,7 @@ export function errorHandler(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction,
 ): void {
-
+ 
   // Handle Zod validation errors
   if (err instanceof ZodError) {
     res.status(400).json({
