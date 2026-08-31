@@ -7,4 +7,6 @@ const app = createApp();
 app.listen(env.PORT, () => {
   logger.info(` Ugnay API listening on http://localhost:${env.PORT}`);
   logger.info(` Health check: http://localhost:${env.PORT}/health`);
+  logger.info(` CORS origin: ${env.CORS_ORIGIN}`);
+  logger.info(` Auth routes: http://localhost:${env.PORT}/api/v1/auth`);
 });

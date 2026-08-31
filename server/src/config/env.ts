@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
-
-/**
+import { StringValue } from 'ms';
+/* 
  * Centralized, validated environment configuration.
  * The app fails fast on boot if a required variable is missing or malformed,
  * instead of surfacing a confusing error deep inside a request handler later.
@@ -11,7 +11,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
-  JWT_EXPIRES_IN: z.string().default('1d'),
+  JWT_EXPIRES_IN: z.string().default('1d') .transform((value) => value as StringValue),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
 });
 
