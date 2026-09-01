@@ -11,7 +11,7 @@ export const authRoutes = (authController: AuthController): Router => {
     // apply middlewares to authentication routes
     router.post('/register', apiRateLimiter, validate(registerSchema), catchAsync(authController.register));
     router.post('/login', loginRateLimiter, validate(loginSchema), catchAsync(authController.login));
-    router.post('/register', registerRateLimiter, validate(registerSchema), catchAsync(authController.register));
-
+    router.post('/logout', apiRateLimiter, catchAsync(authController.logout));
+    router.post('/refresh', apiRateLimiter, catchAsync(authController.refresh));
     return router;
 };

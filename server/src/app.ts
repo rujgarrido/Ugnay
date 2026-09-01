@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { env } from './config/env';
 import { logger } from './lib/logger';
+import  cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/errorHandler';
 import { routesNotFound } from './middleware/routesNotFound';
 import { authRoutes } from './features/auth/auth.routes';
@@ -21,13 +22,15 @@ export function createApp(): Express {
   
   // Middleware to parse JSON request bodies
   app.use(express.json());
- 
+
+  app.use(cookieParser());
+  
   //strip pino-http headers to avoid logging sensitive information
-  app.use(pinoHttp({ logger, serializers: {
-    req: (req) => ({ method: req.method, url: req.url }), // strip headers
-    res: (res) => ({ statusCode: res.statusCode }),
-  },
- }));
+//   app.use(pinoHttp({ logger, serializers: {
+//     req: (req) => ({ method: req.method, url: req.url }), // strip headers
+//     res: (res) => ({ statusCode: res.statusCode }),
+//   },
+//  }));
 
   // Health check — used for local verification and platform (Render) health probes.
   app.get('/health', (_req, res) => {
@@ -36,15 +39,6 @@ export function createApp(): Express {
 
   // Initialize the AuthController with its dependencies
   const authController = new AuthController(new AuthService(new AuthRepository()));
-
-
-  // Feature routers are mounted here as they're built, e.g.:
-  // app.use('/api/v1/auth', authRouter);
-  const apiRouter = express.Router();
-  apiRouter.get('/', (_req, res) => {
-    res.json({ message: 'Ugnay API v1 — no feature routes registered yet' });
-  });
-  app.use('/api/v1', apiRouter);
 
   // Authentication Routes
   app.use('/api/v1/auth', authRoutes(authController));

@@ -50,9 +50,45 @@ export class AuthController {
     })
   };
 
+  // Controller function for user logout
+  logout = async (req: Request, res: Response) => {
 
+    const refreshToken = req.cookies.refreshToken;
 
+    if (!refreshToken) {
+      return res.status(200).json({
+        status: 200,
+        message: "User is already logged out"
+      });
+    }
+    
+    await this.authService.logout(refreshToken);
+    res.clearCookie('refreshToken');
 
+    return res.status(200).json({
+      status: 200,
+      message: "Logged out successfully"
+    });
+  };
+  
+  // Controller function for refreshing tokens
+  refresh = async (req: Request, res: Response) => {
+  const rawRefreshToken = req.cookies.refreshToken;
 
-};
+  const { accessToken, refreshToken } = await this.authService.refreshTokens(rawRefreshToken);
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: REFRESH_TOKEN_TTL_MS,
+  });
+
+  return res.status(200).json({
+    status: 200,
+    message: 'Token refreshed',
+    data: { accessToken },
+    });
+  }
+}
 

@@ -30,4 +30,22 @@ export class AuthRepository {
         });
     }
 
+    // This method finds a refresh token by its hash in the database.
+    findRefreshToken = async(hashedRefreshToken: string) => {
+        return prisma.refreshToken.findUnique({ where: { tokenHash: hashedRefreshToken } });
+    }
+
+    
+    // This method revokes a refresh token by updating its revokedAt field in the database.
+    revokeRefreshToken = async (id: string) => {
+    return prisma.refreshToken.update({
+        where: { id },
+        data: {
+        revokedAt: new Date(),
+    },
+  });
+};
+
+    
+
 }

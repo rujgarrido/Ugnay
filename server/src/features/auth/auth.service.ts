@@ -2,9 +2,7 @@
 import { generateRefreshToken, hashRefreshToken, generateAccessToken } from '../../lib/jwt.util';
 import { AppError } from '../../middleware/errorHandler';
 import { AuthRepository } from './auth.repository';
-import { env } from '../../config/env';
 import bcrypt from 'bcrypt';
-import jwt  from 'jsonwebtoken';
 import { REFRESH_TOKEN_TTL_MS } from '../../config/constants';
 
 export class AuthService {
@@ -75,8 +73,68 @@ export class AuthService {
         
         return{ accessToken, refreshToken: refreshtoken } 
     }
+
+    logout = async (refreshToken: string) => {
+        
+        // Hash the provided refresh token to find it in the database
+        const hashedRefreshToken = hashRefreshToken(refreshToken);
+        const refreshTokenRecord = await this.authRepository.findRefreshToken(hashedRefreshToken);
+
+         if (!refreshTokenRecord) {
+            throw new AppError('Invalid refresh token',401);
+        }
+
+         if (refreshTokenRecord.revokedAt) {
+            return;
+        }
+
+        await this.authRepository.revokeRefreshToken(
+            refreshTokenRecord.id
+        );
+    }
     
+    // This method handles the refresh token logic every time a user requests a new access token using a refresh token. 
+    // It validates the provided refresh token, revokes it, and generates new access and refresh tokens.
+    refreshTokens = async (rawRefreshToken: string) => {
 
+        if (!rawRefreshToken) {
+            throw new AppError('Refresh token is required', 400);
+        }
 
+        // Hash the provided refresh token to find it in the database
+        const hashedRefreshToken = hashRefreshToken(rawRefreshToken);
+        const existingToken = await this.authRepository.findRefreshToken(hashedRefreshToken);
 
+        if (!existingToken) {
+            throw new AppError('Invalid refresh token', 401);
+        }
+
+        if (existingToken.revokedAt) {
+            throw new AppError('Invalid refresh token', 401);
+        }
+
+        if (existingToken.expiresAt < new Date()) {
+            throw new AppError('Invalid refresh token', 401);
+        }
+        // Rotation: the token just used is now dead, permanently.
+        await this.authRepository.revokeRefreshToken(existingToken.id);
+
+        const payload = { id: existingToken.userId };
+        // Generate new access token 
+        const newAccessToken = generateAccessToken(payload);
+        // Generate a new refresh token
+        const newRawRefreshToken = generateRefreshToken();
+        const newHashedRefreshToken = hashRefreshToken(newRawRefreshToken);
+
+        const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+        // Store the new hashed refresh token in the database with an expiration date (7 days from now)
+        await this.authRepository.createRefreshToken({
+            userId: payload.id,
+            tokenHash: newHashedRefreshToken,
+            expiresAt: expiresAt,
+        });
+
+        return { accessToken: newAccessToken, refreshToken: newRawRefreshToken };
+
+    }
 }
