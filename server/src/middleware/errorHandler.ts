@@ -9,13 +9,13 @@ import { logger } from '../lib/logger';
  */
 export class AppError extends Error {
   public readonly statusCode: number;
-  public readonly details?: unknown;
+  public readonly data?: unknown;
 
-  constructor(message: string, statusCode = 500, details?: unknown) {
+  constructor(message: string, statusCode = 500, data?: unknown) {
     super(message);
     this.name = 'AppError';
     this.statusCode = statusCode;
-    this.details = details;
+    this.data = data;
   }
 }
 
@@ -26,39 +26,40 @@ export class AppError extends Error {
  */
 export function errorHandler(
   err: unknown,
-  req: Request,
+  _req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction,
 ): void {
+ 
+  // Handle Zod validation errors
   if (err instanceof ZodError) {
     res.status(400).json({
-      error: {
-        message: 'Validation failed',
-        details: err.flatten(),
-      },
+      status: 400,
+      message: 'Validation error',
+      data: err.flatten(),
     });
     return;
   }
-
+  // Handle custom application errors
   if (err instanceof AppError) {
     if (err.statusCode >= 500) {
       logger.error({ err }, err.message);
     }
     res.status(err.statusCode).json({
-      error: {
-        message: err.message,
-        ...(err.details ? { details: err.details } : {}),
-      },
+      status: err.statusCode,
+      message: err.message,
+      data: err.data ?? {},
     });
     return;
   }
 
+  // Handle generic errors
   logger.error({ err }, 'Unhandled error');
   const isProd = process.env.NODE_ENV === 'production';
   res.status(500).json({
-    error: {
-      message: isProd ? 'Internal server error' : (err as Error)?.message || 'Unknown error',
-    },
+    status: 500,
+    message: isProd ? 'Internal server error' : (err as Error)?.message || 'Unknown error',
+    data: {},
   });
 }

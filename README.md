@@ -4,14 +4,6 @@
 A  full-stack task and project management system built with a Modular Monolith
 architecture, demonstrating a real-world Agile/Scrum-inspired SDLC.
 
-# TaskFlow
-
-A portfolio-quality full-stack task management system built with a Modular Monolith
-architecture, demonstrating a real-world Agile/Scrum-inspired SDLC.
-
-> 🚧 Boilerplate stage — project configuration and skeletons only. No business
-> features implemented yet. See `docs/sprint-plan.md` for the build order.
->>>>>>> 3de589d (configure new .env template)
 
 ## Stack
 
@@ -22,7 +14,7 @@ architecture, demonstrating a real-world Agile/Scrum-inspired SDLC.
 ## Repository layout
 
 ```
-TaskFlow/
+Ugnay/
 ├── webapp/        # React + Vite frontend
 ├── server/        # Express + TypeScript backend
 ├── database/      # ERD, seed scripts, SQL exports
@@ -91,9 +83,5 @@ deployment notes as they're written.
 ## License
 
 See `LICENSE`.
-<<<<<<< HEAD
-=======
 # Ugnay
->>>>>>> b5948adfdd8de475070516a0eae4ef7fc87d7d3c
-=======
->>>>>>> 3de589d (configure new .env template)
+

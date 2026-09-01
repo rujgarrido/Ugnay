@@ -17,6 +17,6 @@ function Placeholder({ label }: { label: string }) {
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Placeholder label="TaskFlow" />,
+    element: <Placeholder label="Ugnay" />,
   },
 ]);

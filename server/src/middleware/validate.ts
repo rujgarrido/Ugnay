@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type {Request, Response, NextFunction } from 'express';
 import type { ZodSchema } from 'zod';
 
 /**
@@ -10,9 +10,17 @@ import type { ZodSchema } from 'zod';
  * Invalid input is thrown as a ZodError, which the central errorHandler
  * converts into a consistent 400 response — no per-route error handling needed.
  */
+
 export function validate(schema: ZodSchema) {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    req.body = schema.parse(req.body);
+   
+    const result = schema.safeParse(req.body);
+    console.log('Validation result:', result);
+    if (!result.success) {
+      next(result.error);
+      return;
+    }
+    req.body = result.data; // Replace req.body with the validated data
     next();
   };
 }

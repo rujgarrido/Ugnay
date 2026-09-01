@@ -18,58 +18,58 @@ CREATE TYPE "SignatureStatus" AS ENUM ('PENDING', 'COMPLETED');
 
 -- CreateTable
 CREATE TABLE "User" (
-    "id" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "email" VARCHAR(255) NOT NULL,
     "passwordHash" TEXT NOT NULL,
-    "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "firstName" VARCHAR(100) NOT NULL,
+    "lastName" VARCHAR(100) NOT NULL,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "RefreshToken" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "tokenHash" TEXT NOT NULL,
-    "expiresAt" TIMESTAMP(3) NOT NULL,
-    "revokedAt" TIMESTAMP(3),
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL,
+    "tokenHash" VARCHAR(64) NOT NULL,
+    "expiresAt" TIMESTAMPTZ(3) NOT NULL,
+    "revokedAt" TIMESTAMPTZ(3),
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Organization" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "name" VARCHAR(255) NOT NULL,
     "description" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "Organization_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "OrganizationMember" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "organizationId" TEXT NOT NULL,
-    "positionId" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL,
+    "organizationId" UUID NOT NULL,
+    "positionId" UUID NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "removedAt" TIMESTAMP(3),
+    "joinedAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMPTZ(3),
 
     CONSTRAINT "OrganizationMember_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Position" (
-    "id" TEXT NOT NULL,
-    "organizationId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "organizationId" UUID NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
     "description" TEXT,
 
     CONSTRAINT "Position_pkey" PRIMARY KEY ("id")
@@ -77,8 +77,8 @@ CREATE TABLE "Position" (
 
 -- CreateTable
 CREATE TABLE "Permission" (
-    "id" TEXT NOT NULL,
-    "code" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "code" VARCHAR(100) NOT NULL,
     "description" TEXT,
 
     CONSTRAINT "Permission_pkey" PRIMARY KEY ("id")
@@ -86,28 +86,28 @@ CREATE TABLE "Permission" (
 
 -- CreateTable
 CREATE TABLE "PositionPermission" (
-    "positionId" TEXT NOT NULL,
-    "permissionId" TEXT NOT NULL,
+    "positionId" UUID NOT NULL,
+    "permissionId" UUID NOT NULL,
 
     CONSTRAINT "PositionPermission_pkey" PRIMARY KEY ("positionId","permissionId")
 );
 
 -- CreateTable
 CREATE TABLE "Committee" (
-    "id" TEXT NOT NULL,
-    "organizationId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "organizationId" UUID NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
     "description" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Committee_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CommitteeMember" (
-    "id" TEXT NOT NULL,
-    "committeeId" TEXT NOT NULL,
-    "organizationMemberId" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "committeeId" UUID NOT NULL,
+    "organizationMemberId" UUID NOT NULL,
     "isHead" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "CommitteeMember_pkey" PRIMARY KEY ("id")
@@ -115,75 +115,75 @@ CREATE TABLE "CommitteeMember" (
 
 -- CreateTable
 CREATE TABLE "Project" (
-    "id" TEXT NOT NULL,
-    "organizationId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "organizationId" UUID NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
     "description" TEXT,
     "visibility" "ProjectVisibility" NOT NULL DEFAULT 'ORG_WIDE',
     "status" "ProjectStatus" NOT NULL DEFAULT 'ACTIVE',
-    "createdById" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdById" UUID NOT NULL,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Task" (
-    "id" TEXT NOT NULL,
-    "projectId" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "projectId" UUID NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
     "description" TEXT,
     "priority" "TaskPriority" NOT NULL DEFAULT 'MEDIUM',
     "status" "TaskStatus" NOT NULL DEFAULT 'BACKLOG',
-    "assigneeId" TEXT,
-    "createdById" TEXT NOT NULL,
-    "dueDate" TIMESTAMP(3),
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "assigneeId" UUID,
+    "createdById" UUID NOT NULL,
+    "dueDate" TIMESTAMPTZ(3),
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Proposal" (
-    "id" TEXT NOT NULL,
-    "organizationId" TEXT NOT NULL,
-    "projectId" TEXT,
-    "title" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "organizationId" UUID NOT NULL,
+    "projectId" UUID,
+    "title" VARCHAR(255) NOT NULL,
     "description" TEXT,
     "status" "ProposalStatus" NOT NULL DEFAULT 'DRAFT',
-    "responsibleMemberId" TEXT,
-    "createdById" TEXT NOT NULL,
-    "dueDate" TIMESTAMP(3),
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "responsibleMemberId" UUID,
+    "createdById" UUID NOT NULL,
+    "dueDate" TIMESTAMPTZ(3),
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "Proposal_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ProposalSignature" (
-    "id" TEXT NOT NULL,
-    "proposalId" TEXT NOT NULL,
-    "signatoryName" TEXT NOT NULL,
-    "signatoryRole" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "proposalId" UUID NOT NULL,
+    "signatoryName" VARCHAR(255) NOT NULL,
+    "signatoryRole" VARCHAR(100) NOT NULL,
     "status" "SignatureStatus" NOT NULL DEFAULT 'PENDING',
-    "completedAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMPTZ(3),
 
     CONSTRAINT "ProposalSignature_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ActivityLog" (
-    "id" TEXT NOT NULL,
-    "organizationId" TEXT NOT NULL,
-    "organizationMemberId" TEXT NOT NULL,
-    "action" TEXT NOT NULL,
-    "entityType" TEXT NOT NULL,
-    "entityId" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "organizationId" UUID NOT NULL,
+    "organizationMemberId" UUID NOT NULL,
+    "action" VARCHAR(100) NOT NULL,
+    "entityType" VARCHAR(100) NOT NULL,
+    "entityId" UUID NOT NULL,
     "metadata" JSONB,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ActivityLog_pkey" PRIMARY KEY ("id")
 );
