@@ -83,9 +83,5 @@ deployment notes as they're written.
 ## License
 
 See `LICENSE`.
-<<<<<<< HEAD
-=======
 # Ugnay
->>>>>>> b5948adfdd8de475070516a0eae4ef7fc87d7d3c
-=======
->>>>>>> 3de589d (configure new .env template)
+
